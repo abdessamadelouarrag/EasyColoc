@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ColocationController;
+use App\Http\Controllers\DashboardController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -27,6 +29,7 @@ Route::get('/colocation/create', function () {
     return view('colocation.colocation');
 })->name('colocation.create');
 
-
+Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard');
 
 require __DIR__ . '/auth.php';

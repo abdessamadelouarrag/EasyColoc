@@ -45,6 +45,6 @@ class ColocationController extends Controller
     public function show(Colocation $colocation)
     {
         $colocation->load(['owner', 'users']);
-        return view('colocations.show', compact('colocation'));
+        return view('colocation.show', compact('colocation'));
     }
 }
