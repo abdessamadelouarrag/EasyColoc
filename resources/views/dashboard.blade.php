@@ -32,7 +32,7 @@
             <div class="flex items-center gap-6">
                 <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full uppercase tracking-wider">
                     {{ Auth::user()->is_admin ? 'Global Admin' : (Auth::user()->is_owner ? 'Owner' : 'Member') }}
-                </span>
+                </span>                
 
                 <div class="flex items-center gap-3 border-l pl-6 border-slate-200">
                     <div class="text-right hidden md:block">
