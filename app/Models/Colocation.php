@@ -19,4 +19,9 @@ class Colocation extends Model
             ->withPivot('role', 'joined_at', 'left_at')
             ->withTimestamps();
     }
+
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class);
+    }
 }
