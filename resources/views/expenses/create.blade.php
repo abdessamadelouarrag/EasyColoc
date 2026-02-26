@@ -34,8 +34,7 @@
         </div>
 
         <div class="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-white">
-            
-            <form action="" method="POST" class="space-y-8">
+            <form action="{{ route('expenses.store', $colocation->id) }}" method="POST" class="space-y-8">
                 @csrf
 
                 <div class="space-y-3">

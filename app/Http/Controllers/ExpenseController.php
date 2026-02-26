@@ -32,8 +32,12 @@ class ExpenseController extends Controller
 
         return back()->with('ok', 'Dépense ajoutée.');
     }
+
     public function create(Colocation $colocation)
     {
-        return view('expenses.create', compact('colocation'));
+        $categories = $colocation->categories; 
+        $members = $colocation->members;   
+
+        return view('expenses.create', compact('colocation', 'categories', 'members'));
     }
 }
