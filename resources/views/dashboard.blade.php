@@ -65,7 +65,7 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('colocation.create') }}"
+                <a href="{{ route('colocations.create') }}"
                    class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:scale-[1.02] transition-all inline-flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>

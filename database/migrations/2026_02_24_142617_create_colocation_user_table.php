@@ -4,27 +4,23 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('colocation_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('colocation_id')->constrained()->cascadeOnDelete();
-            $table->enum('role', ['owner', 'member']);
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
+            $table->string('role')->default('member');
             $table->timestamp('joined_at')->nullable();
             $table->timestamp('left_at')->nullable();
+
             $table->timestamps();
+            $table->unique(['colocation_id', 'user_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('colocation_user');

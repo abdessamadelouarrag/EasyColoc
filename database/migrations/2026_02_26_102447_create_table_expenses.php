@@ -7,18 +7,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('invitations', function (Blueprint $table) {
+        Schema::create('expenses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('colocation_id')->constrained()->cascadeOnDelete();
-            $table->string('email');
-            $table->string('token')->unique();
-            $table->string('status')->default('pending');
+            $table->foreignId('payer_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+
+            $table->string('title');
+            $table->decimal('amount', 10, 2);
+            $table->date('date');
+
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('invitations');
+        Schema::dropIfExists('expenses');
     }
 };

@@ -2,76 +2,73 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ColocationInvitationMail;
 use App\Models\Colocation;
 use App\Models\Invitation;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class InvitationController extends Controller
 {
-    public function create(Colocation $colocation)
-    {
-        return view('invitations.create', compact('colocation'));
-    }
-
     public function store(Request $request, Colocation $colocation)
     {
+        $pivot = $colocation->members()->where('users.id', Auth::id())->firstOrFail()->pivot;
+        abort_unless($pivot->role === 'owner', 403);
+
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required','email'],
         ]);
 
-        $existing = Invitation::where('colocation_id', $colocation->id)
-            ->where('email', $data['email'])
-            ->where('status', 'pending')
-            ->first();
-
-        if ($existing) {
-            return back()->withErrors(['email' => 'Une invitation est déjà en attente pour cet email.']);
-        }
-
-        $invitation = Invitation::create([
+        $inv = Invitation::create([
             'colocation_id' => $colocation->id,
             'email' => $data['email'],
-            'token' => Str::random(48),
+            'token' => Str::random(40),
             'status' => 'pending',
         ]);
 
-        Mail::to($data['email'])->send(new ColocationInvitationMail($invitation));
+        // Ici tu peux envoyer un email (Mail::to()->send()) si tu veux
 
-        return back()->with('success', 'Invitation envoyée par email.');
+        return back()->with('ok', 'Invitation créée. Token: '.$inv->token);
     }
 
-    public function accept(string $token)
+    public function acceptForm(string $token)
     {
-        $invitation = Invitation::where('token', $token)
-            ->where('status', 'pending')
-            ->firstOrFail();
+        $invitation = Invitation::where('token', $token)->firstOrFail();
+        return view('invitations.accept', compact('invitation'));
+    }
 
-        $user = auth()->user();
+    public function accept(Request $request, string $token)
+    {
+        $invitation = Invitation::where('token', $token)->firstOrFail();
 
-        if (!$user || $user->email !== $invitation->email) {
-            return redirect()->route('login')
-                ->with('status', 'Connecte-toi avec le même email que celui invité pour accepter.');
+        if (Auth::user()->hasActiveColocation) {
+            return back()->withErrors(['invite' => 'Vous avez déjà une colocation active.']);
+        }
+
+        if (Auth::user()->email !== $invitation->email) {
+            return back()->withErrors(['invite' => 'Email ne correspond pas à l’invitation.']);
+        }
+
+        if ($invitation->status !== 'pending') {
+            return back()->withErrors(['invite' => 'Invitation déjà traitée.']);
         }
 
         $colocation = $invitation->colocation;
 
-        $already = $colocation->users()->where('users.id', $user->id)->exists();
-        if (!$already) {
-            $colocation->users()->attach($user->id, [
-                'role' => 'member',
-                'joined_at' => now(),
-            ]);
-        }
-
-        $invitation->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
+        $colocation->members()->attach(Auth::id(), [
+            'role' => 'member',
+            'joined_at' => now(),
         ]);
 
-        return redirect()->route('colocations.show', $colocation)
-            ->with('success', 'Bienvenue ! Tu as rejoint la colocation.');
+        $invitation->update(['status' => 'accepted']);
+
+        return redirect()->route('colocations.show', $colocation)->with('ok', 'Invitation acceptée.');
+    }
+
+    public function refuse(string $token)
+    {
+        $invitation = Invitation::where('token', $token)->firstOrFail();
+        $invitation->update(['status' => 'refused']);
+        return redirect()->route('dashboard')->with('ok', 'Invitation refusée.');
     }
 }
