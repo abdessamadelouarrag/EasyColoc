@@ -15,10 +15,10 @@ class ExpenseController extends Controller
         abort_unless($colocation->members()->where('users.id', Auth::id())->exists(), 403);
 
         $data = $request->validate([
-            'title' => ['required','string','max:120'],
-            'amount' => ['required','numeric','min:0.01'],
-            'date' => ['required','date'],
-            'category_id' => ['required','exists:categories,id'],
+            'title' => ['required', 'string', 'max:120'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'date' => ['required', 'date'],
+            'category_id' => ['required', 'exists:categories,id'],
         ]);
 
         Expense::create([
@@ -31,5 +31,9 @@ class ExpenseController extends Controller
         ]);
 
         return back()->with('ok', 'Dépense ajoutée.');
+    }
+    public function create(Colocation $colocation)
+    {
+        return view('expenses.create', compact('colocation'));
     }
 }
