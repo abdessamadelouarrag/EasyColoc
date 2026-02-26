@@ -12,8 +12,14 @@ Route::get('/', fn() => view('welcome'));
 
 Route::middleware(['auth', 'banned'])->group(function () {
 
-    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
-    // Profile
+    Route::get('/dashboard', function () {
+
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return view('dashboard');
+    })->middleware(['auth'])->name('dashboard');    // Profile
     Route::get('/profile', function () {
         return view('profile.edit');
     })->name('profile.edit');
@@ -56,9 +62,17 @@ Route::middleware(['auth', 'banned'])->group(function () {
         Route::post('/admin/users/{user}/toggle-ban', [AdminController::class, 'toggleBan'])->name('admin.toggleBan');
     });
 
-    Route::get('/colocations/{colocation}/expenses/create',
-    [ExpenseController::class, 'create'])
-    ->name('expenses.create');
+    Route::get(
+        '/colocations/{colocation}/expenses/create',
+        [ExpenseController::class, 'create']
+    )
+        ->name('expenses.create');
+
+    Route::get(
+        '/colocations/{colocation}/invitations/create',
+        [InvitationController::class, 'create']
+    )
+        ->name('invitations.create');
 });
 
 require __DIR__ . '/auth.php';

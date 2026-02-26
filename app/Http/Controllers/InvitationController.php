@@ -7,29 +7,27 @@ use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvitationMail;
 class InvitationController extends Controller
 {
     public function store(Request $request, Colocation $colocation)
-    {
-        $pivot = $colocation->members()->where('users.id', Auth::id())->firstOrFail()->pivot;
-        abort_unless($pivot->role === 'owner', 403);
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
 
-        $data = $request->validate([
-            'email' => ['required','email'],
-        ]);
+    $invitation = Invitation::create([
+        'colocation_id' => $colocation->id,
+        'email' => $request->email,
+        'token' => Str::random(40),
+        'status' => 'pending'
+    ]);
 
-        $inv = Invitation::create([
-            'colocation_id' => $colocation->id,
-            'email' => $data['email'],
-            'token' => Str::random(40),
-            'status' => 'pending',
-        ]);
+    Mail::to($request->email)->send(new InvitationMail($invitation));
 
-        // Ici tu peux envoyer un email (Mail::to()->send()) si tu veux
-
-        return back()->with('ok', 'Invitation créée. Token: '.$inv->token);
-    }
+    return back()->with('success', 'Invitation sent!');
+}
 
     public function acceptForm(string $token)
     {
@@ -37,11 +35,17 @@ class InvitationController extends Controller
         return view('invitations.accept', compact('invitation'));
     }
 
+
+    public function create(Colocation $colocation)
+    {
+        return view('invitations.create', compact('colocation'));
+    }
+
     public function accept(Request $request, string $token)
     {
         $invitation = Invitation::where('token', $token)->firstOrFail();
 
-        if (Auth::user()->hasActiveColocation) {
+        if (Auth::user()->hasActiveColocation()) {
             return back()->withErrors(['invite' => 'Vous avez déjà une colocation active.']);
         }
 

@@ -31,7 +31,9 @@ class User extends Authenticatable
 
     public function hasActiveColocation(): bool
     {
-        return $this->activeMembership()->exists();
+        return $this->colocations()
+        ->where('status', 'active')
+        ->exists();
     }
 
     public function isAdmin(): bool
