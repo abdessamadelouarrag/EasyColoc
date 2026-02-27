@@ -68,7 +68,6 @@ class ColocationController extends Controller
     {
         $user = Auth::user();
 
-        // إذا ماشي admin: خاصو يكون member active (left_at = null)
         if (!$user->is_admin) {
             $member = $colocation->members()
                 ->where('users.id', $user->id)

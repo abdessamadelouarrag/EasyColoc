@@ -3,72 +3,99 @@
 namespace App\Services;
 
 use App\Models\Colocation;
+use Carbon\Carbon;
 
 class BalanceService
 {
     public function summary(Colocation $colocation): array
     {
         $membersAll = $colocation->members()
-            ->withPivot('joined_at', 'left_at', 'role')
+            ->withPivot(['role', 'joined_at', 'left_at'])
+            ->withTimestamps() // باش pivot created_at يجي
             ->get();
 
         $expenses = $colocation->expenses()
             ->with(['payer', 'category'])
-            ->orderBy('date')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
 
-        $balances = [];
+        // balances in cents
+        $balancesCents = [];
         foreach ($membersAll as $m) {
-            $balances[$m->id] = 0.0;
+            $balancesCents[$m->id] = 0;
         }
 
+        $totalCents = 0;
+
         foreach ($expenses as $e) {
-            $expenseDate = $e->date;
+            // ✅ "قديم" = expenses.created_at
+            $expenseMoment = $this->toCarbon($e->created_at);
 
-            $participants = $membersAll->filter(function ($m) use ($expenseDate) {
-                $joined = optional($m->pivot->joined_at);
-                $left = optional($m->pivot->left_at);
+            $participants = $membersAll->filter(function ($m) use ($expenseMoment) {
+                // ✅ joinMoment = joined_at else pivot created_at
+                $joinMoment = $m->pivot->joined_at ?: $m->pivot->created_at;
+                $leaveMoment = $m->pivot->left_at;
 
-                $joinedOk = $joined ? $joined->toDateString() <= $expenseDate->toDateString() : true;
-
-                $leftOk = !$left || $left->toDateString() >= $expenseDate->toDateString();
-
-                return $joinedOk && $leftOk;
-            });
+                return $this->isActiveAt($joinMoment, $leaveMoment, $expenseMoment);
+            })->values();
 
             $count = $participants->count();
             if ($count === 0) continue;
 
-            $amount = (float) $e->amount;
-            $share = round($amount / $count, 2);
+            $amountCents = $this->toCents($e->amount);
+            $totalCents += $amountCents;
+
+            // split cents exactly
+            $base = intdiv($amountCents, $count);
+            $rem  = $amountCents - ($base * $count);
 
             foreach ($participants as $p) {
-                $balances[$p->id] -= $share;
+                $balancesCents[$p->id] -= $base;
+            }
+            for ($i = 0; $i < $rem; $i++) {
+                $balancesCents[$participants[$i]->id] -= 1;
             }
 
-            $balances[$e->payer_id] += $amount;
+            // payer gets full amount
+            if (isset($balancesCents[$e->payer_id])) {
+                $balancesCents[$e->payer_id] += $amountCents;
+            }
         }
 
-        foreach ($balances as $id => $b) {
-            $balances[$id] = round($b, 2);
+        // active members now
+        $members = $membersAll->filter(fn($m) => empty($m->pivot->left_at))->values();
+
+        // floats
+        $balances = [];
+        foreach ($balancesCents as $id => $c) {
+            $balances[$id] = $this->fromCents($c);
         }
 
-        $membersActiveNow = $membersAll->filter(fn($m) => $m->pivot->left_at === null)->values();
-        $settlements = $this->buildSettlements($membersActiveNow, $balances);
-
-        $total = round((float) $expenses->sum('amount'), 2);
+        $settlements = $this->buildSettlements($members, $balancesCents);
 
         return [
-            'members' => $membersActiveNow,
+            'members' => $members,
             'membersAll' => $membersAll,
             'expenses' => $expenses,
-            'total' => $total,
+            'total' => $this->fromCents($totalCents),
             'balances' => $balances,
             'settlements' => $settlements,
         ];
     }
 
-    private function buildSettlements($members, array $balances): array
+    private function isActiveAt($joinedAt, $leftAt, Carbon $moment): bool
+    {
+        $joined = $this->toCarbonOrNull($joinedAt);
+        $left   = $this->toCarbonOrNull($leftAt);
+
+        $joinedOk = !$joined || $joined->lessThanOrEqualTo($moment);
+        $leftOk   = !$left || $left->greaterThanOrEqualTo($moment);
+
+        return $joinedOk && $leftOk;
+    }
+
+    private function buildSettlements($members, array $balancesCents): array
     {
         $nameById = $members->pluck('name', 'id')->toArray();
 
@@ -76,33 +103,52 @@ class BalanceService
         $debtors = [];
 
         foreach ($members as $m) {
-            $bal = $balances[$m->id] ?? 0;
-
+            $bal = $balancesCents[$m->id] ?? 0;
             if ($bal > 0) $creditors[] = ['id' => $m->id, 'amount' => $bal];
             if ($bal < 0) $debtors[] = ['id' => $m->id, 'amount' => abs($bal)];
         }
 
-        $i = 0; $j = 0;
-        $result = [];
+        $i = 0; $j = 0; $out = [];
 
         while ($i < count($debtors) && $j < count($creditors)) {
             $pay = min($debtors[$i]['amount'], $creditors[$j]['amount']);
 
-            $result[] = [
+            $out[] = [
                 'from_id' => $debtors[$i]['id'],
                 'from' => $nameById[$debtors[$i]['id']] ?? '—',
                 'to_id' => $creditors[$j]['id'],
                 'to' => $nameById[$creditors[$j]['id']] ?? '—',
-                'amount' => round($pay, 2),
+                'amount' => $this->fromCents($pay),
             ];
 
             $debtors[$i]['amount'] -= $pay;
             $creditors[$j]['amount'] -= $pay;
 
-            if ($debtors[$i]['amount'] <= 0.0001) $i++;
-            if ($creditors[$j]['amount'] <= 0.0001) $j++;
+            if ($debtors[$i]['amount'] <= 0) $i++;
+            if ($creditors[$j]['amount'] <= 0) $j++;
         }
 
-        return $result;
+        return $out;
+    }
+
+    private function toCents($amount): int
+    {
+        return (int) round(((float)$amount) * 100);
+    }
+
+    private function fromCents(int $cents): float
+    {
+        return round($cents / 100, 2);
+    }
+
+    private function toCarbon($v): Carbon
+    {
+        return $v instanceof Carbon ? $v : Carbon::parse($v);
+    }
+
+    private function toCarbonOrNull($v): ?Carbon
+    {
+        if (empty($v)) return null;
+        return $v instanceof Carbon ? $v : Carbon::parse($v);
     }
 }
