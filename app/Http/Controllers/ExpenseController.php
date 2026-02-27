@@ -29,13 +29,11 @@ class ExpenseController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01'],
             'date' => ['required', 'date'],
 
-            // payer لازم يكون member فـ نفس colocation
             'payer_id' => [
                 'required',
                 Rule::exists('colocation_user', 'user_id')->where('colocation_id', $colocation->id),
             ],
 
-            // category لازم تكون ديال نفس colocation
             'category_id' => [
                 'required',
                 Rule::exists('categories', 'id')->where('colocation_id', $colocation->id),

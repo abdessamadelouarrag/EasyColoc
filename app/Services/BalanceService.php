@@ -11,7 +11,7 @@ class BalanceService
     {
         $membersAll = $colocation->members()
             ->withPivot(['role', 'joined_at', 'left_at'])
-            ->withTimestamps() // باش pivot created_at يجي
+            ->withTimestamps()
             ->get();
 
         $expenses = $colocation->expenses()
@@ -29,11 +29,9 @@ class BalanceService
         $totalCents = 0;
 
         foreach ($expenses as $e) {
-            // ✅ "قديم" = expenses.created_at
             $expenseMoment = $this->toCarbon($e->created_at);
 
             $participants = $membersAll->filter(function ($m) use ($expenseMoment) {
-                // ✅ joinMoment = joined_at else pivot created_at
                 $joinMoment = $m->pivot->joined_at ?: $m->pivot->created_at;
                 $leaveMoment = $m->pivot->left_at;
 

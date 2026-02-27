@@ -64,7 +64,6 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        // حيث عندك rule: غير colocation وحدة active
         $activeColoc = $user->colocations()->where('status', 'active')->first();
 
         $debts = null;
