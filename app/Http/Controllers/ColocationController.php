@@ -12,10 +12,11 @@ class ColocationController extends Controller
 {
     public function index()
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         $colocations = $user->colocations()
+            ->wherePivotNull('left_at') 
+            ->where('status', 'active')
             ->latest()
             ->get();
 
@@ -65,11 +66,21 @@ class ColocationController extends Controller
 
     public function show(Colocation $colocation, BalanceService $balanceService)
     {
-        $colocation->load(['owner', 'members', 'expenses.payer', 'expenses.category']);
+        $colocation->load([
+            'owner',
+            'members',
+            'categories',          // ✅ زيدها
+            'expenses.payer',
+            'expenses.category',
+        ]);
 
         $summary = $balanceService->summary($colocation);
 
-        return view('colocations.show', array_merge(compact('colocation'), $summary));
+        return view('colocations.show', array_merge(
+            compact('colocation'),
+            $summary,
+            ['categories' => $colocation->categories]
+        ));
     }
 
     public function cancel(Colocation $colocation)

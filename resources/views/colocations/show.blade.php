@@ -338,6 +338,65 @@
             </div>
         </div>
 
+        @php
+        $me = Auth::id();
+        $toPay = collect($settlements)->filter(fn($s) => $s['from_id'] == $me)->values();
+        $toReceive = collect($settlements)->filter(fn($s) => $s['to_id'] == $me)->values();
+        @endphp
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-10">
+
+            <!-- À payer -->
+            <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden">
+                <div class="p-8 border-b border-slate-50">
+                    <h3 class="text-2xl font-black tracking-tight">Je dois payer</h3>
+                    <p class="text-sm text-slate-500 font-medium mt-1">Ce que tu dois aux autres</p>
+                </div>
+
+                <div class="p-8 space-y-3">
+                    @forelse($toPay as $s)
+                    <div class="flex items-center justify-between p-4 rounded-2xl bg-red-50 border border-red-100">
+                        <div class="text-sm font-bold text-slate-900">
+                            To: <span class="text-red-700 font-black">{{ $s['to'] }}</span>
+                        </div>
+                        <div class="text-sm font-black text-red-700">
+                            {{ number_format($s['amount'], 2, ',', ' ') }} €
+                        </div>
+                    </div>
+                    @empty
+                    <div class="p-4 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-bold">
+                        🎉 Rien à payer
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- À recevoir -->
+            <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden">
+                <div class="p-8 border-b border-slate-50">
+                    <h3 class="text-2xl font-black tracking-tight">Je dois recevoir</h3>
+                    <p class="text-sm text-slate-500 font-medium mt-1">Ce qu’on te doit</p>
+                </div>
+
+                <div class="p-8 space-y-3">
+                    @forelse($toReceive as $s)
+                    <div class="flex items-center justify-between p-4 rounded-2xl bg-green-50 border border-green-100">
+                        <div class="text-sm font-bold text-slate-900">
+                            From: <span class="text-green-700 font-black">{{ $s['from'] }}</span>
+                        </div>
+                        <div class="text-sm font-black text-green-700">
+                            {{ number_format($s['amount'], 2, ',', ' ') }} €
+                        </div>
+                    </div>
+                    @empty
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 font-bold">
+                        Rien à recevoir
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+
+        </div>
     </main>
 
     <footer class="py-10 text-center text-slate-400 text-xs font-medium">

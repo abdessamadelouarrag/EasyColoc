@@ -8,18 +8,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Services\BalanceService;
 
 class ProfileController extends Controller
 {
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
-    {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
+    // public function edit(Request $request): View
+    // {
+    //     return view('profile.edit', [
+    //         'user' => $request->user(),
+    //     ]);
+    // }
 
     /**
      * Update the user's profile information.
@@ -56,5 +57,32 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+
+    public function edit(Request $request, BalanceService $balanceService)
+    {
+        $user = $request->user();
+
+        // حيث عندك rule: غير colocation وحدة active
+        $activeColoc = $user->colocations()->where('status', 'active')->first();
+
+        $debts = null;
+
+        if ($activeColoc) {
+            $summary = $balanceService->summary($activeColoc);
+
+            $toPay = collect($summary['settlements'])->filter(fn($s) => $s['from_id'] == $user->id)->values();
+            $toReceive = collect($summary['settlements'])->filter(fn($s) => $s['to_id'] == $user->id)->values();
+
+            $debts = [
+                'colocation' => $activeColoc,
+                'balance' => $summary['balances'][$user->id] ?? 0,
+                'toPay' => $toPay,
+                'toReceive' => $toReceive,
+            ];
+        }
+
+        return view('profile.edit', compact('debts'));
     }
 }
