@@ -41,4 +41,13 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
     
+    public function isOwnerOfColocation(Colocation $colocation): bool
+{
+    if ($colocation->owner_id === $this->id) return true;
+
+    return $colocation->members()
+        ->where('users.id', $this->id)
+        ->wherePivot('role', 'owner')
+        ->exists();
+}
 }

@@ -249,6 +249,95 @@
             </div>
         </div>
 
+        <!-- EXPENSES LIST -->
+        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden mt-10">
+
+            <div class="p-8 border-b border-slate-50 flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-black tracking-tight">Dépenses</h3>
+                    <p class="text-sm text-slate-500 font-medium mt-1">
+                        Historique des dépenses ajoutées
+                    </p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                            <th class="px-8 py-4">Titre</th>
+                            <th class="px-8 py-4">Catégorie</th>
+                            <th class="px-8 py-4">Payé par</th>
+                            <th class="px-8 py-4">Date</th>
+                            <th class="px-8 py-4 text-right">Montant</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-50">
+                        @forelse($colocation->expenses as $expense)
+                        <tr class="hover:bg-slate-50/80 transition-colors group">
+
+                            <!-- Title -->
+                            <td class="px-8 py-5">
+                                <p class="text-sm font-bold text-slate-900 group-hover:text-indigo-600">
+                                    {{ $expense->title }}
+                                </p>
+                            </td>
+
+                            <!-- Category -->
+                            <td class="px-8 py-5">
+                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-indigo-50 text-indigo-600">
+                                    {{ $expense->category->name ?? '—' }}
+                                </span>
+                            </td>
+
+                            <!-- Payer -->
+                            <td class="px-8 py-5">
+                                <p class="text-sm font-semibold text-slate-700">
+                                    {{ $expense->payer->name ?? '—' }}
+                                </p>
+                            </td>
+
+                            <!-- Date -->
+                            <td class="px-8 py-5">
+                                <p class="text-sm text-slate-600">
+                                    {{ $expense->date->format('d/m/Y') }}
+                                </p>
+                            </td>
+
+                            <!-- Amount -->
+                            <td class="px-8 py-5 text-right">
+                                <p class="text-lg font-black text-slate-900">
+                                    {{ number_format($expense->amount, 2, ',', ' ') }} €
+                                </p>
+                            </td>
+
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-8 py-10 text-center">
+                                <div class="max-w-md mx-auto">
+                                    <div class="w-14 h-14 rounded-3xl bg-slate-100 mx-auto flex items-center justify-center text-slate-600">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </div>
+                                    <p class="mt-4 font-black text-slate-900">
+                                        Aucune dépense pour le moment
+                                    </p>
+                                    <p class="mt-2 text-sm text-slate-500 font-medium">
+                                        Ajoute une dépense pour commencer.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </main>
 
     <footer class="py-10 text-center text-slate-400 text-xs font-medium">

@@ -3,48 +3,41 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Colocation extends Model
 {
-    protected $fillable = ['name','owner_id','status'];
+    protected $fillable = [
+        'name',
+        'status',
+        'owner_id'
+    ];
 
+    // Owner
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    // Members (pivot)
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->withPivot(['role','joined_at','left_at'])
+            ->withPivot('role', 'joined_at', 'left_at')
             ->withTimestamps();
     }
 
-    public function activeMembers()
-    {
-        return $this->members()->wherePivotNull('left_at');
-    }
-
-    public function categories(): HasMany
-    {
-        return $this->hasMany(Category::class);
-    }
-
+    // Expenses
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
     }
 
-    public function invitations(): HasMany
+    // Categories
+    public function categories(): HasMany
     {
-        return $this->hasMany(Invitation::class);
-    }
-
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Category::class);
     }
 }

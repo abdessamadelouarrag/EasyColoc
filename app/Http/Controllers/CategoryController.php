@@ -2,38 +2,41 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
 use App\Models\Colocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
 
 class CategoryController extends Controller
 {
     public function store(Request $request, Colocation $colocation)
     {
-        $pivot = $colocation->members()->where('users.id', Auth::id())->firstOrFail()->pivot;
-        abort_unless($pivot->role === 'owner', 403);
+        abort_unless(Auth::user()->isOwnerOfColocation($colocation), 403);
 
         $data = $request->validate([
-            'name' => ['required','string','max:80'],
+            'name' => ['required', 'string', 'max:50'],
         ]);
 
-        Category::create([
-            'colocation_id' => $colocation->id,
+        $exists = $colocation->categories()
+            ->whereRaw('LOWER(name) = ?', [strtolower($data['name'])])
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['category' => 'Cette catégorie existe déjà.']);
+        }
+
+        $category = $colocation->categories()->create([
             'name' => $data['name'],
         ]);
 
-        return back()->with('ok', 'Catégorie ajoutée.');
-    }
-
-    public function destroy(Category $category)
-    {
-        $colocation = $category->colocation;
-        $pivot = $colocation->members()->where('users.id', Auth::id())->firstOrFail()->pivot;
-        abort_unless($pivot->role === 'owner', 403);
-
-        $category->delete();
-        return back()->with('ok', 'Catégorie supprimée.');
+        return redirect()
+            ->route('expenses.create', $colocation)
+            ->with('ok', 'Catégorie ajoutée ✅')
+            ->with('category_selected', $category->id)
+            ->withInput([
+                'title' => $request->input('_draft_title'),
+                'amount' => $request->input('_draft_amount'),
+                'date' => $request->input('_draft_date'),
+                'payer_id' => $request->input('_draft_payer_id'),
+            ]);
     }
 }

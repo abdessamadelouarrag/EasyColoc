@@ -62,20 +62,14 @@ class ColocationController extends Controller
 
     public function show(Colocation $colocation)
     {
-        $user = Auth::user();
+        $colocation->load([
+            'owner',
+            'members',
+            'expenses.payer',
+            'expenses.category'
+        ]);
 
-        // User must be active member
-        abort_unless(
-            $colocation->members()
-                ->where('users.id', $user->id)
-                ->wherePivotNull('left_at')
-                ->exists(),
-            403
-        );
-
-        $members = $colocation->activeMembers()->get();
-
-        return view('colocations.show', compact('colocation', 'members'));
+        return view('colocations.show', compact('colocation'));
     }
 
     public function cancel(Colocation $colocation)

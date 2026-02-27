@@ -7,18 +7,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
-    protected $fillable = ['colocation_id', 'payer_id', 'category_id', 'title', 'amount', 'date'];
+    protected $fillable = [
+        'colocation_id',
+        'payer_id',
+        'category_id',
+        'title',
+        'amount',
+        'date'
+    ];
 
-    protected $casts = ['date' => 'date'];
+    protected $casts = [
+        'date' => 'date',
+        'amount' => 'decimal:2'
+    ];
 
     public function colocation(): BelongsTo
     {
         return $this->belongsTo(Colocation::class);
     }
+
     public function payer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'payer_id');
     }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

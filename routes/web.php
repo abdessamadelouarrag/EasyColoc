@@ -73,6 +73,11 @@ Route::middleware(['auth', 'banned'])->group(function () {
         [InvitationController::class, 'create']
     )
         ->name('invitations.create');
+
+    Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])
+    ->name('categories.store');
+
+    
 });
 
 require __DIR__ . '/auth.php';

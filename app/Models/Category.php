@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    protected $fillable = ['colocation_id','name'];
+    protected $fillable = [
+        'colocation_id',
+        'name'
+    ];
 
     public function colocation(): BelongsTo
     {
