@@ -6,54 +6,68 @@ use App\Models\Colocation;
 
 class BalanceService
 {
-    public function balances(Colocation $colocation): array
+    public function summary(Colocation $colocation): array
     {
-        $members = $colocation->activeMembers()->get();
+        // أعضاء مازالين فـ colocation (left_at = null)
+        $members = $colocation->members()
+            ->wherePivotNull('left_at')
+            ->get();
 
-        $total = $colocation->expenses()->sum('amount');
-        $count = max(1, $members->count());
-        $share = $total / $count;
+        $expenses = $colocation->expenses()
+            ->with(['payer', 'category'])
+            ->get();
 
-        // total paid per user
-        $paidMap = [];
-        foreach ($members as $m) $paidMap[$m->id] = 0.0;
+        $n = $members->count();
+        $total = (float) $expenses->sum('amount');
+        $share = $n > 0 ? round($total / $n, 2) : 0;
 
-        $expenses = $colocation->expenses()->get();
+        // total paid per member
+        $paid = [];
+        foreach ($members as $m) {
+            $paid[$m->id] = 0.0;
+        }
         foreach ($expenses as $e) {
-            $paidMap[$e->payer_id] = ($paidMap[$e->payer_id] ?? 0) + (float)$e->amount;
+            if (isset($paid[$e->payer_id])) {
+                $paid[$e->payer_id] += (float) $e->amount;
+            }
         }
 
         // balance = paid - share
         $balances = [];
         foreach ($members as $m) {
-            $balances[$m->id] = round(($paidMap[$m->id] ?? 0) - $share, 2);
+            $balances[$m->id] = round($paid[$m->id] - $share, 2);
         }
 
-        return $balances;
+        // who owes who (simplified)
+        $settlements = $this->buildSettlements($members, $balances);
+
+        return compact('members', 'expenses', 'total', 'share', 'paid', 'balances', 'settlements');
     }
 
-    public function settlements(Colocation $colocation): array
+    private function buildSettlements($members, array $balances): array
     {
-        $balances = $this->balances($colocation);
+        $nameById = $members->pluck('name', 'id')->toArray();
 
-        $debtors = [];
         $creditors = [];
+        $debtors = [];
 
         foreach ($balances as $userId => $bal) {
-            if ($bal < 0) $debtors[] = ['user_id' => $userId, 'amount' => abs($bal)];
-            if ($bal > 0) $creditors[] = ['user_id' => $userId, 'amount' => $bal];
+            if ($bal > 0) $creditors[] = ['id' => $userId, 'amount' => $bal];
+            if ($bal < 0) $debtors[] = ['id' => $userId, 'amount' => abs($bal)];
         }
 
         $i = 0; $j = 0;
-        $settlements = [];
+        $result = [];
 
         while ($i < count($debtors) && $j < count($creditors)) {
             $pay = min($debtors[$i]['amount'], $creditors[$j]['amount']);
 
-            $settlements[] = [
-                'from_user_id' => $debtors[$i]['user_id'],
-                'to_user_id'   => $creditors[$j]['user_id'],
-                'amount'       => round($pay, 2),
+            $result[] = [
+                'from_id' => $debtors[$i]['id'],
+                'from' => $nameById[$debtors[$i]['id']] ?? '—',
+                'to_id' => $creditors[$j]['id'],
+                'to' => $nameById[$creditors[$j]['id']] ?? '—',
+                'amount' => round($pay, 2),
             ];
 
             $debtors[$i]['amount'] -= $pay;
@@ -63,6 +77,6 @@ class BalanceService
             if ($creditors[$j]['amount'] <= 0.0001) $j++;
         }
 
-        return $settlements;
+        return $result;
     }
 }

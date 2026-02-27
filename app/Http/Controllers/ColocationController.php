@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Colocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BalanceService;
+
 
 class ColocationController extends Controller
 {
@@ -60,16 +62,14 @@ class ColocationController extends Controller
         return redirect()->route('colocations.show', $colocation);
     }
 
-    public function show(Colocation $colocation)
-    {
-        $colocation->load([
-            'owner',
-            'members',
-            'expenses.payer',
-            'expenses.category'
-        ]);
 
-        return view('colocations.show', compact('colocation'));
+    public function show(Colocation $colocation, BalanceService $balanceService)
+    {
+        $colocation->load(['owner', 'members', 'expenses.payer', 'expenses.category']);
+
+        $summary = $balanceService->summary($colocation);
+
+        return view('colocations.show', array_merge(compact('colocation'), $summary));
     }
 
     public function cancel(Colocation $colocation)
