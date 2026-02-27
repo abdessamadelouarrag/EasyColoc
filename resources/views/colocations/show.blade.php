@@ -102,6 +102,8 @@
                     Retour
                 </a>
 
+
+                @if(Auth::user()->isOwnerOfColocation($colocation))
                 <a href="{{ route('expenses.create', $colocation->id) }}"
                     class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:scale-[1.02] transition-all inline-flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,12 +111,13 @@
                     </svg>
                     Ajouter dépense
                 </a>
+                @endif
             </div>
         </div>
 
         <!-- STATS -->
         @php
-        $membersCount = $colocation->users?->count() ?? 0;
+        $membersCount = $colocation->members?->count() ?? 0;
         $ownerName = $colocation->owner?->name ?? '—';
         @endphp
 

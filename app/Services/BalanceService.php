@@ -8,40 +8,64 @@ class BalanceService
 {
     public function summary(Colocation $colocation): array
     {
-        // أعضاء مازالين فـ colocation (left_at = null)
-        $members = $colocation->members()
-            ->wherePivotNull('left_at')
+        $membersAll = $colocation->members()
+            ->withPivot('joined_at', 'left_at', 'role')
             ->get();
 
         $expenses = $colocation->expenses()
             ->with(['payer', 'category'])
+            ->orderBy('date')
             ->get();
 
-        $n = $members->count();
-        $total = (float) $expenses->sum('amount');
-        $share = $n > 0 ? round($total / $n, 2) : 0;
-
-        // total paid per member
-        $paid = [];
-        foreach ($members as $m) {
-            $paid[$m->id] = 0.0;
-        }
-        foreach ($expenses as $e) {
-            if (isset($paid[$e->payer_id])) {
-                $paid[$e->payer_id] += (float) $e->amount;
-            }
-        }
-
-        // balance = paid - share
         $balances = [];
-        foreach ($members as $m) {
-            $balances[$m->id] = round($paid[$m->id] - $share, 2);
+        foreach ($membersAll as $m) {
+            $balances[$m->id] = 0.0;
         }
 
-        // who owes who (simplified)
-        $settlements = $this->buildSettlements($members, $balances);
+        foreach ($expenses as $e) {
+            $expenseDate = $e->date;
 
-        return compact('members', 'expenses', 'total', 'share', 'paid', 'balances', 'settlements');
+            $participants = $membersAll->filter(function ($m) use ($expenseDate) {
+                $joined = optional($m->pivot->joined_at);
+                $left = optional($m->pivot->left_at);
+
+                $joinedOk = $joined ? $joined->toDateString() <= $expenseDate->toDateString() : true;
+
+                $leftOk = !$left || $left->toDateString() >= $expenseDate->toDateString();
+
+                return $joinedOk && $leftOk;
+            });
+
+            $count = $participants->count();
+            if ($count === 0) continue;
+
+            $amount = (float) $e->amount;
+            $share = round($amount / $count, 2);
+
+            foreach ($participants as $p) {
+                $balances[$p->id] -= $share;
+            }
+
+            $balances[$e->payer_id] += $amount;
+        }
+
+        foreach ($balances as $id => $b) {
+            $balances[$id] = round($b, 2);
+        }
+
+        $membersActiveNow = $membersAll->filter(fn($m) => $m->pivot->left_at === null)->values();
+        $settlements = $this->buildSettlements($membersActiveNow, $balances);
+
+        $total = round((float) $expenses->sum('amount'), 2);
+
+        return [
+            'members' => $membersActiveNow,
+            'membersAll' => $membersAll,
+            'expenses' => $expenses,
+            'total' => $total,
+            'balances' => $balances,
+            'settlements' => $settlements,
+        ];
     }
 
     private function buildSettlements($members, array $balances): array
@@ -51,9 +75,11 @@ class BalanceService
         $creditors = [];
         $debtors = [];
 
-        foreach ($balances as $userId => $bal) {
-            if ($bal > 0) $creditors[] = ['id' => $userId, 'amount' => $bal];
-            if ($bal < 0) $debtors[] = ['id' => $userId, 'amount' => abs($bal)];
+        foreach ($members as $m) {
+            $bal = $balances[$m->id] ?? 0;
+
+            if ($bal > 0) $creditors[] = ['id' => $m->id, 'amount' => $bal];
+            if ($bal < 0) $debtors[] = ['id' => $m->id, 'amount' => abs($bal)];
         }
 
         $i = 0; $j = 0;

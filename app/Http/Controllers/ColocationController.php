@@ -15,7 +15,7 @@ class ColocationController extends Controller
         $user = Auth::user();
 
         $colocations = $user->colocations()
-            ->wherePivotNull('left_at') 
+            ->wherePivotNull('left_at')
             ->where('status', 'active')
             ->latest()
             ->get();
@@ -66,10 +66,25 @@ class ColocationController extends Controller
 
     public function show(Colocation $colocation, BalanceService $balanceService)
     {
+        $user = Auth::user();
+
+        // إذا ماشي admin: خاصو يكون member active (left_at = null)
+        if (!$user->is_admin) {
+            $member = $colocation->members()
+                ->where('users.id', $user->id)
+                ->first();
+
+            if (!$member || $member->pivot->left_at !== null) {
+                return redirect()
+                    ->route('colocations.index')
+                    ->withErrors(['leave' => "Vous n'êtes plus membre de cette colocation."]);
+            }
+        }
+
         $colocation->load([
             'owner',
-            'members',
-            'categories',          // ✅ زيدها
+            'categories',
+            'members' => fn($q) => $q->wherePivotNull('left_at'),
             'expenses.payer',
             'expenses.category',
         ]);

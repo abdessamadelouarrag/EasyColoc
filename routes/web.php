@@ -19,20 +19,15 @@ Route::middleware(['auth', 'banned'])->group(function () {
         }
 
         return view('dashboard');
-    })->middleware(['auth'])->name('dashboard');    // Profile
+    })->middleware(['auth'])->name('dashboard');
     Route::get('/profile', function () {
         return view('profile.edit');
     })->name('profile.edit');
 
-    Route::patch('/profile', function () {
-        // update logic
-    })->name('profile.update');
+    Route::patch('/profile', function () {})->name('profile.update');
 
-    Route::delete('/profile', function () {
-        // delete logic
-    })->name('profile.destroy');
+    Route::delete('/profile', function () {})->name('profile.destroy');
 
-    // Colocations
     Route::get('/colocations', [ColocationController::class, 'index'])->name('colocations.index');
     Route::get('/colocations/create', [ColocationController::class, 'create'])->name('colocations.create');
     Route::post('/colocations', [ColocationController::class, 'store'])->name('colocations.store');
@@ -40,23 +35,18 @@ Route::middleware(['auth', 'banned'])->group(function () {
     Route::post('/colocations/{colocation}/cancel', [ColocationController::class, 'cancel'])->name('colocations.cancel');
     Route::post('/colocations/{colocation}/leave', [ColocationController::class, 'leave'])->name('colocations.leave');
 
-    // Invitations
     Route::post('/colocations/{colocation}/invitations', [InvitationController::class, 'store'])->name('invitations.store');
     Route::get('/invite/{token}', [InvitationController::class, 'acceptForm'])->name('invitations.form');
     Route::post('/invite/{token}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
     Route::post('/invite/{token}/refuse', [InvitationController::class, 'refuse'])->name('invitations.refuse');
 
-    // Categories
     Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
-    // Expenses
     Route::post('/colocations/{colocation}/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
 
-    // Payments
     Route::post('/colocations/{colocation}/payments', [PaymentController::class, 'store'])->name('payments.store');
 
-    // Admin
     Route::middleware('admin')->group(function () {
         Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         Route::post('/admin/users/{user}/toggle-ban', [AdminController::class, 'toggleBan'])->name('admin.toggleBan');
@@ -75,9 +65,7 @@ Route::middleware(['auth', 'banned'])->group(function () {
         ->name('invitations.create');
 
     Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])
-    ->name('categories.store');
-
-    
+        ->name('categories.store');
 });
 
 require __DIR__ . '/auth.php';
