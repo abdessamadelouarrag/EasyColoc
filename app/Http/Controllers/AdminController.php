@@ -6,6 +6,7 @@ use App\Models\Colocation;
 use App\Models\Expense;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BanService;
 
 
 class AdminController extends Controller
@@ -20,16 +21,36 @@ class AdminController extends Controller
         ];
 
         $users = User::latest()->paginate(20);
-        return view('admin.dashboard', compact('stats','users'));
+        return view('admin.dashboard', compact('stats', 'users'));
     }
 
-    public function toggleBan(User $user)
+    // public function toggleBan(User $user)
+    // {
+    //     if ($user->id === Auth::id()) {
+    //         return back()->withErrors(['ban' => 'Impossible de bannir toi-même.']);
+    //     }
+
+    //     $user->update(['is_banned' => !$user->is_banned]);
+    //     return back()->with('ok', 'Statut changé.');
+    // }
+
+    public function toggleBan(User $user, BanService $banService)
     {
-        if ($user->id === Auth::id()) {
-            return back()->withErrors(['ban' => 'Impossible de bannir toi-même.']);
+        // if user is admin, optional protection
+        // if ($user->role === 'admin') return back()->withErrors(['ban' => 'Impossible de bannir un admin.']);
+
+        if ($user->is_banned) {
+            // Deban
+            $user->update(['is_banned' => false]);
+            $banService->unban($user);
+
+            return back()->with('ok', 'Utilisateur débanni. Il ne réintègre aucune colocation.');
         }
 
-        $user->update(['is_banned' => !$user->is_banned]);
-        return back()->with('ok', 'Statut changé.');
+        // Ban
+        $user->update(['is_banned' => true]);
+        $banService->ban($user);
+
+        return back()->with('ok', 'Utilisateur banni et retiré de toutes ses colocations.');
     }
 }

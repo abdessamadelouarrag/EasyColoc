@@ -51,4 +51,5 @@ class User extends Authenticatable
             ->wherePivot('role', 'owner')
             ->exists();
     }
+
 }

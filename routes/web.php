@@ -12,7 +12,7 @@ Route::get('/', fn() => view('welcome'));
 
 Route::middleware(['auth', 'banned'])->group(function () {
 
-    Route::get('/dashboard', function () {
+    Route::get('/colocations/show', function () {
 
         if (auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
