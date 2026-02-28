@@ -227,9 +227,15 @@
                             </td>
 
                             <td class="px-8 py-5 text-right">
-                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-green-50 text-green-600">
-                                    actif
-                                </span>
+                                    @if ($user->is_banned == 0)
+                                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-green-50 text-green-600">
+                                            Active
+                                        </span>
+                                    @else   
+                                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-red-50 text-red-600">
+                                            Banned
+                                        </span>
+                                    @endif
                             </td>
                         </tr>
                         @empty
