@@ -41,7 +41,6 @@
                 <div class="flex items-center gap-3 border-l pl-6 border-slate-200">
                     <div class="text-right hidden md:block">
                         <p class="text-sm font-bold leading-none">{{ Auth::user()->name }}</p>
-                        <p class="text-xs text-slate-500 mt-1">Score: <span class="text-green-600 font-bold">+12</span></p>
                     </div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

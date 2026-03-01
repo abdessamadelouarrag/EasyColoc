@@ -115,20 +115,54 @@ class ColocationController extends Controller
         return back()->with('ok', 'Colocation annulée.');
     }
 
-    public function leave(Colocation $colocation)
+    // public function leave(Colocation $colocation)
+    // {
+    //     $user = Auth::user();
+
+    //     $member = $colocation->members()
+    //         ->where('users.id', $user->id)
+    //         ->firstOrFail();
+
+    //     $pivot = $member->pivot;
+
+    //     if ($pivot->role === 'owner') {
+    //         return back()->withErrors([
+    //             'leave' => 'Le owner ne peut pas quitter.'
+    //         ]);
+    //     }
+
+    //     $colocation->members()->updateExistingPivot($user->id, [
+    //         'left_at' => now()
+    //     ]);
+
+    //     return redirect()
+    //         ->route('colocations.index')
+    //         ->with('ok', 'Vous avez quitté la colocation.');
+    // }
+
+    public function leave(Colocation $colocation, BalanceService $balanceService)
     {
+
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         $member = $colocation->members()
             ->where('users.id', $user->id)
             ->firstOrFail();
 
-        $pivot = $member->pivot;
-
-        if ($pivot->role === 'owner') {
+        if ($member->pivot->role === 'owner') {
             return back()->withErrors([
                 'leave' => 'Le owner ne peut pas quitter.'
             ]);
+        }
+
+        $summary = $balanceService->summary($colocation);
+        $balance = $summary['balances'][$user->id] ?? 0;
+
+        if ($balance < 0) {
+            $user->decrement('reputation');
+        } else {
+            $user->increment('reputation');
         }
 
         $colocation->members()->updateExistingPivot($user->id, [
@@ -140,21 +174,58 @@ class ColocationController extends Controller
             ->with('ok', 'Vous avez quitté la colocation.');
     }
 
-    public function removeMember(Colocation $colocation, User $user)
-    {
-        $auth = Auth::user();
+    // public function removeMember(Colocation $colocation, User $user)
+    // {
+    //     $auth = Auth::user();
 
-        abort_unless($auth->isOwnerOfColocation($colocation), 403);
+    //     abort_unless($auth->isOwnerOfColocation($colocation), 403);
+
+    //     $member = $colocation->members()
+    //         ->where('users.id', $user->id)
+    //         ->firstOrFail();
+
+    //     $pivot = $member->pivot;
+
+    //     if ($pivot->role === 'owner') {
+    //         return back()->withErrors([
+    //             'remove' => 'Impossible de retirer le owner.'
+    //         ]);
+    //     }
+
+    //     $colocation->members()->updateExistingPivot($user->id, [
+    //         'left_at' => now()
+    //     ]);
+
+    //     return back()->with('success', 'Membre retiré avec succès.');
+    // }
+
+    public function removeMember(Colocation $colocation, User $user, BalanceService $balanceService)
+    {
+        $owner = Auth::user();
+
+        abort_unless($owner->isOwnerOfColocation($colocation), 403);
 
         $member = $colocation->members()
             ->where('users.id', $user->id)
             ->firstOrFail();
 
-        $pivot = $member->pivot;
-
-        if ($pivot->role === 'owner') {
+        if ($member->pivot->role === 'owner') {
             return back()->withErrors([
                 'remove' => 'Impossible de retirer le owner.'
+            ]);
+        }
+
+        $summary = $balanceService->summary($colocation);
+        $balance = $summary['balances'][$user->id] ?? 0;
+
+        if ($balance < 0) {
+            $debt = abs($balance);
+
+            \App\Models\Payment::create([
+                'colocation_id' => $colocation->id,
+                'from_user_id'  => $owner->id,
+                'to_user_id'    => $user->id,
+                'amount'        => $debt,
             ]);
         }
 
@@ -162,6 +233,6 @@ class ColocationController extends Controller
             'left_at' => now()
         ]);
 
-        return back()->with('success', 'Membre retiré avec succès.');
+        return back()->with('ok', 'Membre retiré.');
     }
 }
