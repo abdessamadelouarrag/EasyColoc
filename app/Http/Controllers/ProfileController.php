@@ -82,6 +82,9 @@ class ProfileController extends Controller
             ];
         }
 
-        return view('profile.edit', compact('debts'));
+        return view('profile.edit', [
+            'user' => $user,
+            'debts' => $debts ?? null,
+        ]);
     }
 }

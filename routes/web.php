@@ -6,6 +6,7 @@ use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => view('welcome'));
@@ -20,13 +21,10 @@ Route::middleware(['auth', 'banned'])->group(function () {
 
         return view('dashboard');
     })->middleware(['auth'])->name('dashboard');
-    Route::get('/profile', function () {
-        return view('profile.edit');
-    })->name('profile.edit');
 
-    Route::patch('/profile', function () {})->name('profile.update');
-
-    Route::delete('/profile', function () {})->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/colocations', [ColocationController::class, 'index'])->name('colocations.index');
     Route::get('/colocations/create', [ColocationController::class, 'create'])->name('colocations.create');

@@ -42,10 +42,19 @@
                 </span>
 
                 <div class="flex items-center gap-3 border-l pl-6 border-slate-200">
-                    <div class="text-right hidden md:block">
-                        <p class="text-sm font-bold leading-none">{{ Auth::user()->name }}</p>
-                        <p class="text-xs text-slate-500 mt-1">Connecté</p>
-                    </div>
+                    <a href="{{ route('profile.edit') }}"
+                        class="hidden md:flex items-center gap-3 border-l pl-6 border-slate-200 group">
+                        <div class="text-right">
+                            <p class="text-sm font-bold leading-none group-hover:text-indigo-600 transition">
+                                {{ Auth::user()->name }}
+                            </p>
+                            <p class="text-xs text-slate-500 mt-1">Connecté</p>
+                        </div>
+
+                        <div class="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                        </div>
+                    </a>
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -227,15 +236,15 @@
                             </td>
 
                             <td class="px-8 py-5 text-right">
-                                    @if ($user->is_banned == 0)
-                                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-green-50 text-green-600">
-                                            Active
-                                        </span>
-                                    @else   
-                                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-red-50 text-red-600">
-                                            Banned
-                                        </span>
-                                    @endif
+                                @if ($user->is_banned == 0)
+                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-green-50 text-green-600">
+                                    Active
+                                </span>
+                                @else
+                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-red-50 text-red-600">
+                                    Banned
+                                </span>
+                                @endif
                             </td>
                         </tr>
                         @empty
