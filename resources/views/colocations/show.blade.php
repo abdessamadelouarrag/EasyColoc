@@ -211,33 +211,19 @@
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
+
                     <thead>
                         <tr class="bg-slate-50/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
                             <th class="px-8 py-4">Nom</th>
                             <th class="px-8 py-4">Email</th>
                             <th class="px-8 py-4">Rôle</th>
-                            <!-- <th class="px-8 py-4 text-right">Statut</th> -->
+
                             @if(Auth::user()->isOwnerOfColocation($colocation))
                             <th class="px-8 py-4 text-right">Action</th>
-
-                            <form method="POST"
-                                action="{{ route('colocations.members.remove', [$colocation, $member]) }}"
-                                onsubmit="return confirm('Retirer ce membre de la colocation ?');">
-                                @csrf
-                                @method('DELETE')
-
-                                <button
-                                    class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition">
-                                    Retirer
-                                </button>
-                            </form>
-
-                            </td>
                             @endif
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-slate-50">
                     <tbody class="divide-y divide-slate-50">
                         @forelse($colocation->members as $member)
                         <tr class="hover:bg-slate-50/80 transition-colors group">
@@ -252,9 +238,9 @@
 
                             <td class="px-8 py-5">
                                 <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase
-            {{ $member->pivot->role === 'owner'
-                ? 'bg-indigo-50 text-indigo-600'
-                : 'bg-slate-100 text-slate-600' }}">
+                    {{ $member->pivot->role === 'owner'
+                        ? 'bg-indigo-50 text-indigo-600'
+                        : 'bg-slate-100 text-slate-600' }}">
                                     {{ $member->pivot->role }}
                                 </span>
                             </td>
@@ -278,19 +264,12 @@
                         @empty
                         <tr>
                             <td colspan="4" class="px-8 py-10 text-center">
-                                <div class="max-w-md mx-auto">
-                                    <div class="w-14 h-14 rounded-3xl bg-slate-100 mx-auto flex items-center justify-center text-slate-600">
-                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                    </div>
-                                    <p class="mt-4 font-black text-slate-900">Aucun membre</p>
-                                    <p class="mt-2 text-sm text-slate-500 font-medium">Invite quelqu’un pour démarrer.</p>
-                                </div>
+                                Aucun membre
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
+
                 </table>
             </div>
         </div>
