@@ -28,6 +28,7 @@ class BalanceService
 
         $totalCents = 0;
 
+        // 1) حساب expenses
         foreach ($expenses as $e) {
             $expenseMoment = $this->toCarbon($e->created_at);
 
@@ -61,21 +62,43 @@ class BalanceService
             }
         }
 
+        // ✅ 2) حساب payments (خاص يجي قبل settlements)
+        $payments = $colocation->payments()
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($payments as $p) {
+            $amountCents = $this->toCents($p->amount);
+
+            // from paid => balance increases (less debt)
+            if (isset($balancesCents[$p->from_user_id])) {
+                $balancesCents[$p->from_user_id] += $amountCents;
+            }
+
+            // to received => balance decreases (less credit)
+            if (isset($balancesCents[$p->to_user_id])) {
+                $balancesCents[$p->to_user_id] -= $amountCents;
+            }
+        }
+
         // active members now
         $members = $membersAll->filter(fn($m) => empty($m->pivot->left_at))->values();
 
-        // floats
+        // 3) floats AFTER payments
         $balances = [];
         foreach ($balancesCents as $id => $c) {
             $balances[$id] = $this->fromCents($c);
         }
 
+        // 4) settlements AFTER payments
         $settlements = $this->buildSettlements($members, $balancesCents);
 
         return [
             'members' => $members,
             'membersAll' => $membersAll,
             'expenses' => $expenses,
+            'payments' => $payments, // (اختياري) إلى بغيتي تعرض history
             'total' => $this->fromCents($totalCents),
             'balances' => $balances,
             'settlements' => $settlements,

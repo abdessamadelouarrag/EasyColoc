@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Colocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class CategoryController extends Controller
 {

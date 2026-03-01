@@ -6,6 +6,7 @@ use App\Models\Colocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\BalanceService;
+use App\Models\User;
 
 
 class ColocationController extends Controller
@@ -137,5 +138,30 @@ class ColocationController extends Controller
         return redirect()
             ->route('colocations.index')
             ->with('ok', 'Vous avez quitté la colocation.');
+    }
+
+    public function removeMember(Colocation $colocation, User $user)
+    {
+        $auth = Auth::user();
+
+        abort_unless($auth->isOwnerOfColocation($colocation), 403);
+
+        $member = $colocation->members()
+            ->where('users.id', $user->id)
+            ->firstOrFail();
+
+        $pivot = $member->pivot;
+
+        if ($pivot->role === 'owner') {
+            return back()->withErrors([
+                'remove' => 'Impossible de retirer le owner.'
+            ]);
+        }
+
+        $colocation->members()->updateExistingPivot($user->id, [
+            'left_at' => now()
+        ]);
+
+        return back()->with('success', 'Membre retiré avec succès.');
     }
 }

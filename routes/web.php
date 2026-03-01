@@ -64,6 +64,11 @@ Route::middleware(['auth', 'banned'])->group(function () {
 
     Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])
         ->name('categories.store');
+
+    Route::delete(
+        '/colocations/{colocation}/members/{user}',
+        [ColocationController::class, 'removeMember']
+    )->name('colocations.members.remove');
 });
 
 require __DIR__ . '/auth.php';

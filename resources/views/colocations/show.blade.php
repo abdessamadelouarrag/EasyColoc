@@ -163,10 +163,15 @@
                         <path d="M12 1a11 11 0 1 0 11 11A11 11 0 0 0 12 1zm1 17h-2v-2h2zm1.07-7.75-.9.92A1.5 1.5 0 0 0 13 13v1h-2v-.5a3 3 0 0 1 .88-2.12l1.24-1.26a1.5 1.5 0 1 0-2.62-1H8.5a3.5 3.5 0 1 1 6.57 1.13z" />
                     </svg>
                 </div>
+
                 <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Dépenses</p>
-                <h2 class="text-4xl font-black">—</h2>
+
+                <h2 class="text-4xl font-black">
+                    {{ number_format($total ?? 0, 2, ',', ' ') }} €
+                </h2>
+
                 <p class="mt-3 text-slate-300 text-sm font-medium">
-                    (Tu ajouteras le total après la table expenses)
+                    Total des dépenses enregistrées
                 </p>
             </div>
 
@@ -211,41 +216,64 @@
                             <th class="px-8 py-4">Nom</th>
                             <th class="px-8 py-4">Email</th>
                             <th class="px-8 py-4">Rôle</th>
-                            <th class="px-8 py-4 text-right">Statut</th>
+                            <!-- <th class="px-8 py-4 text-right">Statut</th> -->
+                            @if(Auth::user()->isOwnerOfColocation($colocation))
+                            <th class="px-8 py-4 text-right">Action</th>
+
+                            <form method="POST"
+                                action="{{ route('colocations.members.remove', [$colocation, $member]) }}"
+                                onsubmit="return confirm('Retirer ce membre de la colocation ?');">
+                                @csrf
+                                @method('DELETE')
+
+                                <button
+                                    class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition">
+                                    Retirer
+                                </button>
+                            </form>
+
+                            </td>
+                            @endif
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-slate-50">
-                        @forelse($colocation->members as $user)
+                    <tbody class="divide-y divide-slate-50">
+                        @forelse($colocation->members as $member)
                         <tr class="hover:bg-slate-50/80 transition-colors group">
+
                             <td class="px-8 py-5">
-                                <p class="text-sm font-bold text-slate-900 group-hover:text-indigo-600">
-                                    {{ $user->name }}
-                                </p>
+                                {{ $member->name }}
                             </td>
 
                             <td class="px-8 py-5">
-                                <p class="text-sm font-bold text-slate-700">{{ $user->email }}</p>
+                                {{ $member->email }}
                             </td>
 
                             <td class="px-8 py-5">
                                 <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase
-                                        {{ ($user->pivot->role ?? 'member') === 'owner' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600' }}">
-                                    {{ $user->pivot->role ?? 'member' }}
+            {{ $member->pivot->role === 'owner'
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $member->pivot->role }}
                                 </span>
                             </td>
 
+                            @if(Auth::user()->isOwnerOfColocation($colocation) && $member->pivot->role !== 'owner')
                             <td class="px-8 py-5 text-right">
-                                @if ($user->is_banned == 0)
-                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-green-50 text-green-600">
-                                    Active
-                                </span>
-                                @else
-                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase bg-red-50 text-red-600">
-                                    Banned
-                                </span>
-                                @endif
+                                <form method="POST"
+                                    action="{{ route('colocations.members.remove', [$colocation, $member]) }}"
+                                    onsubmit="return confirm('Retirer ce membre ?');">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition">
+                                        Retirer
+                                    </button>
+                                </form>
                             </td>
+                            @endif
+
                         </tr>
                         @empty
                         <tr>
@@ -366,24 +394,43 @@
 
             <!-- À payer -->
             <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden">
+
                 <div class="p-8 border-b border-slate-50">
                     <h3 class="text-2xl font-black tracking-tight">Je dois payer</h3>
-                    <p class="text-sm text-slate-500 font-medium mt-1">Ce que tu dois aux autres</p>
+                    <p class="text-sm text-slate-500 font-medium mt-1">
+                        Ce que tu dois aux autres
+                    </p>
                 </div>
 
-                <div class="p-8 space-y-3">
+                <div class="p-8 space-y-4">
                     @forelse($toPay as $s)
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-red-50 border border-red-100">
-                        <div class="text-sm font-bold text-slate-900">
-                            To: <span class="text-red-700 font-black">{{ $s['to'] }}</span>
+                    <div class="p-4 rounded-2xl bg-red-50 border border-red-100">
+
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-sm font-bold text-slate-900">
+                                To: <span class="text-red-700 font-black">{{ $s['to'] }}</span>
+                            </div>
+
+                            <div class="text-sm font-black text-red-700">
+                                {{ number_format($s['amount'], 2, ',', ' ') }} €
+                            </div>
                         </div>
-                        <div class="text-sm font-black text-red-700">
-                            {{ number_format($s['amount'], 2, ',', ' ') }} €
-                        </div>
+
+                        <form method="POST" action="{{ route('payments.store', $colocation) }}">
+                            @csrf
+                            <input type="hidden" name="to_user_id" value="{{ $s['to_id'] }}">
+                            <input type="hidden" name="amount" value="{{ $s['amount'] }}">
+
+                            <button
+                                class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                                Marquer payé
+                            </button>
+                        </form>
+
                     </div>
                     @empty
                     <div class="p-4 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-bold">
-                        🎉 Rien à payer
+                        Rien à payer
                     </div>
                     @endforelse
                 </div>
