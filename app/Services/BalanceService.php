@@ -20,7 +20,6 @@ class BalanceService
             ->orderBy('id')
             ->get();
 
-        // balances in cents
         $balancesCents = [];
         foreach ($membersAll as $m) {
             $balancesCents[$m->id] = 0;
@@ -28,7 +27,6 @@ class BalanceService
 
         $totalCents = 0;
 
-        // 1) حساب expenses
         foreach ($expenses as $e) {
             $expenseMoment = $this->toCarbon($e->created_at);
 
@@ -45,7 +43,6 @@ class BalanceService
             $amountCents = $this->toCents($e->amount);
             $totalCents += $amountCents;
 
-            // split cents exactly
             $base = intdiv($amountCents, $count);
             $rem  = $amountCents - ($base * $count);
 
@@ -56,13 +53,11 @@ class BalanceService
                 $balancesCents[$participants[$i]->id] -= 1;
             }
 
-            // payer gets full amount
             if (isset($balancesCents[$e->payer_id])) {
                 $balancesCents[$e->payer_id] += $amountCents;
             }
         }
 
-        // ✅ 2) حساب payments (خاص يجي قبل settlements)
         $payments = $colocation->payments()
             ->orderBy('created_at')
             ->orderBy('id')
@@ -71,34 +66,29 @@ class BalanceService
         foreach ($payments as $p) {
             $amountCents = $this->toCents($p->amount);
 
-            // from paid => balance increases (less debt)
             if (isset($balancesCents[$p->from_user_id])) {
                 $balancesCents[$p->from_user_id] += $amountCents;
             }
 
-            // to received => balance decreases (less credit)
             if (isset($balancesCents[$p->to_user_id])) {
                 $balancesCents[$p->to_user_id] -= $amountCents;
             }
         }
 
-        // active members now
         $members = $membersAll->filter(fn($m) => empty($m->pivot->left_at))->values();
 
-        // 3) floats AFTER payments
         $balances = [];
         foreach ($balancesCents as $id => $c) {
             $balances[$id] = $this->fromCents($c);
         }
 
-        // 4) settlements AFTER payments
         $settlements = $this->buildSettlements($members, $balancesCents);
 
         return [
             'members' => $members,
             'membersAll' => $membersAll,
             'expenses' => $expenses,
-            'payments' => $payments, // (اختياري) إلى بغيتي تعرض history
+            'payments' => $payments,
             'total' => $this->fromCents($totalCents),
             'balances' => $balances,
             'settlements' => $settlements,
