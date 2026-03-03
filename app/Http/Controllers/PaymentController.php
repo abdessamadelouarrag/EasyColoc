@@ -39,6 +39,6 @@ class PaymentController extends Controller
         'amount' => $data['amount'],
     ]);
 
-    return back()->with('success', 'Paiement enregistré ✅');
+    return back()->with('success', 'Paiement enregistré ');
 }
 }

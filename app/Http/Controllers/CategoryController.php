@@ -31,7 +31,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('expenses.create', $colocation)
-            ->with('ok', 'Catégorie ajoutée ✅')
+            ->with('ok', 'Catégorie ajoutée ')
             ->with('category_selected', $category->id)
             ->withInput([
                 'title' => $request->input('_draft_title'),
