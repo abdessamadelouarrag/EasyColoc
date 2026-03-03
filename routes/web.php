@@ -19,7 +19,7 @@ Route::middleware(['auth', 'banned'])->group(function () {
             return redirect()->route('admin.dashboard');
         }
 
-        return view('colocations.show');
+        return view('dashboard');
     })->middleware(['auth'])->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

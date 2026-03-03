@@ -212,29 +212,30 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
 
+                    @php
+                    $showActionColumn = Auth::user()->isOwnerOfColocation($colocation);
+                    @endphp
+
                     <thead>
                         <tr class="bg-slate-50/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
                             <th class="px-8 py-4">Nom</th>
                             <th class="px-8 py-4">Email</th>
                             <th class="px-8 py-4">Rôle</th>
 
-                            @if(Auth::user()->isOwnerOfColocation($colocation))
+                            @if($showActionColumn)
                             <th class="px-8 py-4 text-right">Action</th>
                             @endif
+
+                            <th class="px-8 py-4">Reputation</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-slate-50">
                         @forelse($colocation->members as $member)
                         <tr class="hover:bg-slate-50/80 transition-colors group">
+                            <td class="px-8 py-5">{{ $member->name }}</td>
 
-                            <td class="px-8 py-5">
-                                {{ $member->name }}
-                            </td>
-
-                            <td class="px-8 py-5">
-                                {{ $member->email }}
-                            </td>
+                            <td class="px-8 py-5">{{ $member->email }}</td>
 
                             <td class="px-8 py-5">
                                 <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase
@@ -245,8 +246,9 @@
                                 </span>
                             </td>
 
-                            @if(Auth::user()->isOwnerOfColocation($colocation) && $member->pivot->role !== 'owner')
+                            @if($showActionColumn)
                             <td class="px-8 py-5 text-right">
+                                @if($member->pivot->role !== 'owner')
                                 <form method="POST"
                                     action="{{ route('colocations.members.remove', [$colocation, $member]) }}"
                                     onsubmit="return confirm('Retirer ce membre ?');">
@@ -257,13 +259,19 @@
                                         Retirer
                                     </button>
                                 </form>
+                                @endif
                             </td>
                             @endif
 
+                            <td class="px-8 py-4">
+                                <span class="px-3 py-1 rounded-lg text-[14px] font-black">
+                                    {{ $member->reputation }}
+                                </span>
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="px-8 py-10 text-center">
+                            <td colspan="{{ $showActionColumn ? 5 : 4 }}" class="px-8 py-10 text-center">
                                 Aucun membre
                             </td>
                         </tr>
